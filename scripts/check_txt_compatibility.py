@@ -8,6 +8,7 @@ import sys
 from collections import Counter
 from pathlib import Path
 
+from charset_normalizer import from_bytes
 
 HTML_ENTITY_PATTERN = re.compile(
     r"&(?:#\d+|#x[0-9a-f]+|[a-z][a-z0-9]+);", re.IGNORECASE
@@ -17,9 +18,18 @@ INVALID_XML_CONTROL_PATTERN = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f]")
 
 
 def read_text(path: Path) -> tuple[str, str]:
-    """Read common UTF and Chinese legacy encodings without dependencies."""
+    """Read common UTF and Chinese legacy encodings without mojibake."""
     raw_text = path.read_bytes()
-    for encoding in ("utf-8-sig", "gb18030", "gbk"):
+    try:
+        return raw_text.decode("utf-8-sig"), "utf-8-sig"
+    except UnicodeDecodeError:
+        pass
+
+    detected_text = from_bytes(raw_text).best()
+    if detected_text is not None:
+        return str(detected_text), str(detected_text.encoding)
+
+    for encoding in ("big5", "gb18030", "gbk"):
         try:
             return raw_text.decode(encoding), encoding
         except UnicodeDecodeError:
@@ -59,7 +69,9 @@ def main() -> int:
         sys.stdout.reconfigure(errors="backslashreplace")
 
     parser = argparse.ArgumentParser(
-        description="Find TXT markup and character sequences that need EPUB normalization."
+        description=(
+            "Find TXT markup and character sequences that need EPUB normalization."
+        )
     )
     parser.add_argument(
         "paths",

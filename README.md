@@ -40,6 +40,14 @@ txt2epub convert `
   --cover .\cover.png
 ```
 
+For safety, an existing output file is not replaced unless `--overwrite` is supplied. The output path may not be the input path. The Python API follows the same rule and requires `overwrite=True` for an existing destination.
+
+Wrapped prose is reflowed within each paragraph for comfortable reading at different font sizes. Use `--preserve-line-breaks` for poetry or preformatted text where every source line break matters.
+
+When a cover is supplied, it is the first page. It is followed by a title page with the title, author, character count, and chapter count. Neither front page is listed as a table-of-contents entry.
+
+If a TXT header contains fields such as `书名：`, `作者：`, and `简介：`, they are used automatically. For other sources, pass `--description "..."` or `--description-file .\description.txt` to add a description to the title page and EPUB metadata.
+
 When running directly from a cloned checkout without installing the package, use:
 
 ```powershell
@@ -53,6 +61,7 @@ Run `txt2epub convert --help` for the complete option list. `--encoding` can for
 The converter recognises common chapter forms, including:
 
 - Chinese headings such as `第一章 标题`, `第二回 标题`, `第 十二 章 标题`, and `012 标题`.
+- Volume headings such as `第一卷 标题` and `【第一卷：标题】`.
 - Numbered headings such as `001 [标题]` and `1. Title`.
 - English `Chapter`, `Book`, `Part`, and `Volume` headings.
 - Special sections such as `序章`, `楔子`, `前言`, `终章`, `尾声`, `后记`, `附录`, and `番外`.
