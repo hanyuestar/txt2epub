@@ -1,0 +1,4 @@
+charset-normalizer>=3.3.0
+ebooklib>=0.18
+langdetect>=1.0.0
+pillow>=10.4.0
