@@ -1,90 +1,69 @@
-# txt2epub
+# txt2epub · TXT 转 EPUB 工具（含图形界面）
 
-[English](README.md) | [中文](README.zh.md)
+把小说 / 长文本 TXT 文件转换为 EPUB 3 电子书。支持**命令行（CLI）**与**图形界面（GUI）**两种用法，GUI 专为不想敲命令的用户设计。
 
-`txt2epub` is a command-line converter for turning TXT novels and other long-form text into EPUB books. It is designed for common Chinese TXT sources as well as English chapter headings, and has no GUI dependency.
+> 本项目在 [hehetoshang/txt2epub](https://github.com/hehetoshang/txt2epub) 基础上新增了 Tkinter 图形界面与 PyInstaller 单文件打包，命令行功能完全保留。
 
-## Requirements
+## 功能特性
 
-- Python 3.10 or newer
+- 自动识别章节（中文「第一章 / 第N卷 / 序章 / 楔子」、英文 `Chapter / Volume`、纯数字编号等）
+- 自动探测文件编码（UTF-8 / GB18030 / GBK）
+- 自动提取书名、作者、简介等元数据写入 EPUB
+- 支持封面图
+- **新增图形界面**：批量选文件 / 文件夹、可视化进度、一键转换
 
-## Install
+## 快速开始（图形界面，推荐）
 
-Install the project and its command-line entry point:
+1. 到 [Releases](https://github.com/hanyuestar/txt2epub/releases) 下载 `txt2epub-gui.exe`
+2. 双击运行（Windows 64 位，单文件，**无需安装 Python**）
+3. 使用步骤：
+   - 点「**选择文件…**」可一次多选多个 TXT；或点「**选择文件夹…**」自动扫描该目录下所有 `.txt`
+   - 文件列表中可逐条点「**移除**」剔除不需要的文件，或点「**清空列表**」全部清空
+   - 点「**浏览…**」选择转换后的输出目录
+   - 确认无误后点底部「**确认转换**」
+   - 等待进度条走完，弹窗显示「转换完成」及成功 / 失败统计
+4. 转换后的 `.epub` 生成在你指定的输出目录，文件名与源 TXT 同名
 
-```powershell
-python -m pip install .
+> 转换在后台线程执行，界面不会卡死；单个文件失败不影响其余文件。
+
+## 命令行用法
+
+```bash
+txt2epub convert --input 小说.txt \
+  [--output 输出.epub] \
+  [--title 书名] [--author 作者] [--language zh] \
+  [--cover 封面.jpg] [--encoding utf-8] \
+  [--overwrite] [--preserve-line-breaks] [--description 简介]
 ```
 
-Alternatively, install the runtime dependencies for local development:
+更完整的命令行说明见 [`README.zh.md`](README.zh.md) / [`README.en.md`](README.en.md)。
 
-```powershell
-python -m pip install -r requirements.txt
+## 从源码构建 exe
+
+需要 Python 3.10+ 与 pip：
+
+```bash
+pip install -r requirements.txt pyinstaller
+pyinstaller txt2epub-gui.spec --noconfirm
 ```
 
-## Convert a book
+产物在 `dist/txt2epub-gui.exe`（单文件，23MB 左右）。
 
-```powershell
-txt2epub convert --input .\novel.txt
-```
+## 项目结构
 
-The EPUB is written beside the input file by default. Set its metadata or destination when needed:
+| 路径 | 说明 |
+|------|------|
+| `src/txt2epub.py` | 核心转换逻辑（CLI 与 GUI 共用，**未改动**） |
+| `src/__main__.py` | 命令行入口 |
+| `src/gui/` | Tkinter 图形界面（本次新增） |
+| `txt2epub-gui.spec` | PyInstaller 单文件打包配置 |
+| `PRD_GUI.md` / `ARCH_GUI.md` | GUI 增量需求与设计文档 |
 
-```powershell
-txt2epub convert `
-  --input .\novel.txt `
-  --output .\novel.epub `
-  --title "My Novel" `
-  --author "Author" `
-  --language zh `
-  --cover .\cover.png
-```
+## 已知问题 / 待办
 
-For safety, an existing output file is not replaced unless `--overwrite` is supplied. The output path may not be the input path. The Python API follows the same rule and requires `overwrite=True` for an existing destination.
+- 内核 `read_book_text` 对个别 GBK/GB18030 文件的编码识别存在既有问题（部分测试基线失败），属上游范围，不影响 GUI 流程稳定性，但可能导致个别文件内容为乱码。
+- v1 不支持中途中止、不暴露高级参数（编码 / 封面 / 标题等走自动识别）。
 
-Wrapped prose is reflowed within each paragraph for comfortable reading at different font sizes. Use `--preserve-line-breaks` for poetry or preformatted text where every source line break matters.
+## 许可
 
-When a cover is supplied, it is the first page. It is followed by a title page with the title, author, character count, and chapter count. Neither front page is listed as a table-of-contents entry.
-
-If a TXT header contains fields such as `书名：`, `作者：`, and `简介：`, they are used automatically. For other sources, pass `--description "..."` or `--description-file .\description.txt` to add a description to the title page and EPUB metadata.
-
-When running directly from a cloned checkout without installing the package, use:
-
-```powershell
-python -m src convert --input .\novel.txt
-```
-
-Run `txt2epub convert --help` for the complete option list. `--encoding` can force a known input encoding; otherwise the converter tries UTF-8, GB18030, GBK, and automatic detection.
-
-## Chapter recognition
-
-The converter recognises common chapter forms, including:
-
-- Chinese headings such as `第一章 标题`, `第二回 标题`, `第 十二 章 标题`, and `012 标题`.
-- Volume headings such as `第一卷 标题` and `【第一卷：标题】`.
-- Numbered headings such as `001 [标题]` and `1. Title`.
-- English `Chapter`, `Book`, `Part`, and `Volume` headings.
-- Special sections such as `序章`, `楔子`, `前言`, `终章`, `尾声`, `后记`, `附录`, and `番外`.
-
-It also removes repeated title-only tables of contents, converts common scraped HTML paragraph tags, and decodes HTML entities such as `&amp;`. Decimal numbers and timestamps are deliberately not treated as chapter headings.
-
-If no reliable chapter layout is found, the source is kept as one EPUB chapter instead of splitting ordinary paragraphs incorrectly.
-
-## Development checks
-
-Install the development tool and run the available checks:
-
-```powershell
-python -m pip install ruff
-make check
-```
-
-To scan TXT sources for HTML markup, entities, replacement characters, and invalid XML control characters:
-
-```powershell
-python scripts\check_txt_compatibility.py tests
-```
-
-## License
-
-This project is released under the [MIT License](LICENSE).
+请参考上游仓库许可协议。
