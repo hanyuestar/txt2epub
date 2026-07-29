@@ -6,6 +6,7 @@ import pathlib
 import re
 import stat
 import tempfile
+import unicodedata
 import uuid
 
 import langdetect
@@ -535,6 +536,14 @@ def extract_front_matter(
     )
 
 
+def _cjk_ideograph_ratio(text: str) -> float:
+    """Return the fraction of ``text`` made of CJK Unified Ideographs."""
+    if not text:
+        return 0.0
+    cjk = sum(1 for ch in text if "CJK UNIFIED IDEOGRAPH" in unicodedata.name(ch, ""))
+    return cjk / len(text)
+
+
 def read_book_text(input_file: pathlib.Path, encoding: str | None = None) -> str:
     """Read a TXT file while accommodating common encodings."""
     raw_text = input_file.read_bytes()
@@ -549,20 +558,46 @@ def read_book_text(input_file: pathlib.Path, encoding: str | None = None) -> str
     except UnicodeDecodeError:
         pass
 
-    # Test automatic detection before permissive legacy codecs. GB18030 can
-    # decode many Big5 byte sequences without raising an error, but produces
-    # silent mojibake when it is chosen for a Traditional Chinese source.
-    detected_text = from_bytes(raw_text).best()
-    if detected_text is not None:
-        return str(detected_text)
+    # charset_normalizer frequently ranks the Korean/Japanese encodings
+    # (cp949, cp932, euc-kr, ...) ahead of GBK for Simplified Chinese sources
+    # because they share large portions of the byte space. That produces Korean
+    # mojibake instead of the intended Chinese text. We re-rank its candidates by
+    # the proportion of decoded CJK ideographs and give a small preference to
+    # Chinese-capable encodings, then accept the detection only when a Chinese
+    # encoding actually wins.
+    matches = list(from_bytes(raw_text))
+    if matches:
+        chinese_encodings = {"gb18030", "gbk", "gb2312", "big5"}
 
-    # These encodings provide a final deterministic fallback when automatic
-    # detection cannot make a confident choice.
-    for fallback_encoding in ("big5", "gb18030", "gbk"):
+        ranked = []
+        for match in matches:
+            try:
+                decoded = str(match)
+            except UnicodeDecodeError:
+                continue
+            enc = (match.encoding or "").lower()
+            score = _cjk_ideograph_ratio(decoded) + (
+                0.1 if enc in chinese_encodings else 0.0
+            )
+            ranked.append((score, enc, decoded))
+        ranked.sort(reverse=True)
+
+        if ranked and ranked[0][1] in chinese_encodings:
+            return ranked[0][2]
+
+    # No confident Chinese decoding from detection: fall back to deterministic
+    # legacy codecs. Chinese encodings are tried first because this converter
+    # targets Chinese novels; the trailing gbk-with-replace guarantees readable
+    # text even for files that contain isolated invalid bytes.
+    for fallback_encoding in ("gb18030", "gbk"):
         try:
             return raw_text.decode(fallback_encoding)
         except UnicodeDecodeError:
             continue
+    try:
+        return raw_text.decode("big5")
+    except UnicodeDecodeError:
+        pass
 
     # Some downloaded GBK files contain isolated invalid bytes.  Preserve the
     # readable text instead of letting a different legacy codec misdecode it.
