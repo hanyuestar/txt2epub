@@ -31,6 +31,8 @@ MANIFEST
 #  before PyInstaller builds the exe, so as to inject date/other infos into it.
 *.manifest
 *.spec
+# 但本项目的 PyInstaller 打包配置需入库（源码级构建配置）
+!txt2epub-gui.spec
 
 # Installer logs
 pip-log.txt
