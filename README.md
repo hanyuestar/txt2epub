@@ -59,10 +59,14 @@ pyinstaller txt2epub-gui.spec --noconfirm
 | `txt2epub-gui.spec` | PyInstaller 单文件打包配置 |
 | `PRD_GUI.md` / `ARCH_GUI.md` | GUI 增量需求与设计文档 |
 
+## 使用文档
+
+完整使用手册（GUI / CLI 用法、章节识别、编码兼容性、常见问题、从源码构建）见 [**`docs/wiki/Home.md`**](docs/wiki/Home.md)。
+
 ## 已知问题 / 待办
 
-- 内核 `read_book_text` 对个别 GBK/GB18030 文件的编码识别存在既有问题（部分测试基线失败），属上游范围，不影响 GUI 流程稳定性，但可能导致个别文件内容为乱码。
-- v1 不支持中途中止、不暴露高级参数（编码 / 封面 / 标题等走自动识别）。
+- ~~GBK/GB18030 编码识别问题~~ 已在 **v1.0.0（`026b339`）** 修复：`read_book_text` 曾因 charset_normalizer 把中文误判为韩文编码（cp949）导致乱码，现改为按 CJK 汉字占比重排候选，GBK/GB18030 文件正确解码（详见 [编码与兼容性](docs/wiki/编码与兼容性.md)）。
+- v1 不支持中途中止、不暴露高级参数（编码 / 封面 / 标题等走自动识别；需手动控制请用 CLI）。
 
 ## 许可
 
