@@ -36,7 +36,7 @@ txt2epub convert --input 小说.txt \
   [--overwrite] [--preserve-line-breaks] [--description 简介]
 ```
 
-更完整的命令行说明见 [`README.zh.md`](README.zh.md) / [`README.en.md`](README.en.md)。
+更完整的命令行说明见 [命令行-CLI 使用指南](docs/wiki/命令行-CLI.md)。
 
 ## 从源码构建 exe
 
